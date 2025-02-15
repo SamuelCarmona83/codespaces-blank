@@ -8,7 +8,6 @@ BLUE = "\033[94m"
 RESET = "\033[0m"
 
 class Card:
-
     def __init__(self, value, suit):
         self.value = value
         self.suit = suit
@@ -28,7 +27,6 @@ class Card:
         return f"<Card {self.value} of {color_value}{self.suit}{RESET}>"
         
 class Deck:
-
     def __init__(self, card_amount=52):
         self.cards = []
         for _ in range(card_amount):
@@ -43,7 +41,6 @@ class Deck:
         return card_dealed
 
 class Hand:
-
     def __init__(self):
         self.cards = []
 
@@ -78,9 +75,7 @@ class Hand:
                 aces_amount += 1
         return aces_amount
 
-
 class Dealer:
-
     def __init__(self):
         self.hand = Hand()
         self.deck = Deck(208)
@@ -91,10 +86,12 @@ class Dealer:
     def pick_card(self):
         self.hand.cards.append(self.deal())
         
-
+    def play_hand(self):
+        """Dealer must hit on 16 and stand on 17"""
+        while self.hand.get_total() < 17:
+            self.pick_card()
 
 class Player:
-
     def __init__(self, name):
         self.name = name
         self.hand = Hand()
@@ -109,92 +106,99 @@ class Player:
         pass
 
 class Blackjack:
-    
     def __init__(self):
+        self.game_over = False
+        self.player = Player('lucho')
+        self.dealer = Dealer()
+        self.play_game()
 
-        game_over = False
-        winner = None
-
-        player = Player('lucho')
-        dealer = Dealer()
-
-        player.receive_card(dealer.deal())
-        player.receive_card(dealer.deal())
-
-        def show_hands():
-            print(f"Here's your {GREEN} Hand:{RESET}")
-            print(player.hand.cards, f"total player: {YELLOW}{player.hand.get_total()}{RESET}\n")
-            print(dealer.hand.cards, f"total dealer hand: {RED}{dealer.hand.get_total()}{RESET}\n")
-
-        print(f"Welcome {GREEN}{player.name}{RESET} to {RED}Blackjack!{RESET}\n")
-        print(f"Here's your {GREEN} Hand:{RESET}")
-        print(player.hand.cards, f"total player: {YELLOW}{player.hand.get_total()}{RESET}\n")
-
-        dealer.pick_card()
-        dealer.pick_card()
-
-        print(dealer.hand.cards, f"total dealer hand: {RED}{dealer.hand.get_total()}{RESET}\n")
+    def show_hands(self, hide_dealer_first_card=False):
+        print(f"\nHere's your {GREEN}Hand:{RESET}")
+        print(self.player.hand.cards, f"total player: {YELLOW}{self.player.hand.get_total()}{RESET}")
         
+        print(f"\nDealer's Hand:")
+        if hide_dealer_first_card:
+            hidden_hand = ['<Hidden>'] + self.dealer.hand.cards[1:]
+            print(hidden_hand, f"total shown: {RED}{self.dealer.hand.cards[1].value if isinstance(self.dealer.hand.cards[1].value, int) else 10}{RESET}")
+        else:
+            print(self.dealer.hand.cards, f"total dealer: {RED}{self.dealer.hand.get_total()}{RESET}")
+
+    def check_winner(self):
+        player_total = self.player.hand.get_total()
+        dealer_total = self.dealer.hand.get_total()
+
+        if player_total > 21:
+            print(f"{RED}Bust! You went over 21. House wins!{RESET}")
+            return True
+            
+        if dealer_total > 21:
+            print(f"{GREEN}Dealer busts! You win!{RESET}")
+            return True
+            
+        if player_total > dealer_total:
+            print(f"{GREEN}You win with {player_total} against dealer's {dealer_total}!{RESET}")
+            return True
+            
+        elif dealer_total > player_total:
+            print(f"{RED}Dealer wins with {dealer_total} against your {player_total}!{RESET}")
+            return True
+            
+        else:  # Equal totals
+            if len(self.player.hand.cards) < len(self.dealer.hand.cards):
+                print(f"{GREEN}Push with {player_total}, but you win with fewer cards!{RESET}")
+            elif len(self.player.hand.cards) > len(self.dealer.hand.cards):
+                print(f"{RED}Push with {player_total}, but dealer wins with fewer cards!{RESET}")
+            else:
+                print(f"{YELLOW}Push! It's a tie with {player_total}!{RESET}")
+            return True
+
+    def play_game(self):
+        # Initial deal
+        print(f"Welcome {GREEN}{self.player.name}{RESET} to {RED}Blackjack!{RESET}\n")
         
-        if dealer.hand.get_total() == 21:
-            game_over = True
-            print(f"{RED} House always win!{RESET}")
+        self.player.receive_card(self.dealer.deal())
+        self.dealer.pick_card()
+        self.player.receive_card(self.dealer.deal())
+        self.dealer.pick_card()
         
-        if player.hand.get_total() == 21:
-            game_over = True
-            print(f"{GREEN}You lucky bastard, you win!{RESET}")
+        # Show initial hands (hiding dealer's first card)
+        self.show_hands(hide_dealer_first_card=True)
 
-        def check_gameover():
-            player_amount = player.hand.get_total()
-            dealer_amount = dealer.hand.get_total()
+        # Check for natural blackjack
+        if self.dealer.hand.get_total() == 21:
+            self.show_hands(hide_dealer_first_card=False)
+            print(f"{RED}Dealer has Blackjack! House wins!{RESET}")
+            return
+            
+        if self.player.hand.get_total() == 21:
+            self.show_hands(hide_dealer_first_card=False)
+            print(f"{GREEN}Blackjack! You win!{RESET}")
+            return
 
-            if player_amount > 21:
-                print("Perdiste bobo!")
-                game_over = True
-                return True
-
-            if player_amount <= 21 and player_amount > dealer_amount:
-
-                print("Coño Ganaste")
-                game_over = True
-                return True
-
-            if player_amount == dealer_amount:
-                if len(player.hand.cards) < len(dealer.hand.cards):
-                    print("Coño Ganaste")
-                else:
-                    print("Perdiste")
-                return True
-
-            game_over = False
-            return False
-
-
-        while not game_over:
-
-            print("What do you want to do next:")
-            response = input(f"Press (h) key to {RED}Hit{RESET} or (s) to {YELLOW}Stay:{RESET}")
-            response = response.lower()
-
-            print("response: ", response)
+        # Player's turn
+        while not self.game_over:
+            response = input(f"\nWhat do you want to do next:\nPress (h) to {RED}Hit{RESET} or (s) to {YELLOW}Stay:{RESET} ").lower()
 
             if response not in ['h', 's']:
                 print("Your only options are (h) and (s) keys")
                 continue
 
             if response == 'h':
-                player.hit(dealer.deal())
-                print(f"{RESET}New player hand: {player.hand.cards}")
-
-                if not check_gameover():
-                    continue
-            
-            if response =='s':
-                check_gameover()
-                game_over = True 
+                self.player.hit(self.dealer.deal())
+                self.show_hands(hide_dealer_first_card=True)
                 
-            check_gameover()
-            show_hands()
-        
+                if self.player.hand.get_total() > 21:
+                    self.show_hands(hide_dealer_first_card=False)
+                    print(f"{RED}Bust! You went over 21. House wins!{RESET}")
+                    self.game_over = True
+                    break
+            
+            if response == 's':
+                # Dealer's turn
+                self.dealer.play_hand()
+                self.show_hands(hide_dealer_first_card=False)
+                self.check_winner()
+                self.game_over = True
 
-game = Blackjack()
+if __name__ == "__main__":
+    game = Blackjack()
